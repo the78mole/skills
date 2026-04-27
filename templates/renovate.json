@@ -1,0 +1,101 @@
+{
+  // Renovate Best-Practice Configuration
+  // Copy this file to the root of your repository as renovate.json (or renovate.json5).
+  // See https://docs.renovatebot.com/ for full reference.
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+
+  // ── Base presets ──────────────────────────────────────────────────────────
+  // config:standard  – sensible defaults (automerge disabled globally here,
+  //                    enabled selectively below), semantic commits, etc.
+  // :pinDigests      – pin all action references to their SHA digest so that
+  //                    supply-chain attacks are mitigated.
+  "extends": [
+    "config:standard",
+    ":pinDigests"
+  ],
+
+  // ── Global schedule ───────────────────────────────────────────────────────
+  // Restrict update PRs to weekends so weekday workflows stay noise-free.
+  "schedule": ["every weekend"],
+
+  // ── PR limits ────────────────────────────────────────────────────────────
+  // Avoid PR floods: at most 3 open Renovate PRs at any time.
+  "prConcurrentLimit": 3,
+
+  // ── Package rules ────────────────────────────────────────────────────────
+  "packageRules": [
+    // ── Group all non-major GitHub Actions updates into one monthly PR ────
+    {
+      "description": "Group all non-major GitHub Actions updates into a single monthly PR",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "GitHub Actions (non-major)",
+      "schedule": ["on the first day of the month"],
+      "automerge": false
+    },
+
+    // ── Automerge minor/patch updates for trusted GitHub-owned actions ────
+    // Requires green CI (branch protection rules must be configured).
+    {
+      "description": "Automerge minor/patch for trusted GitHub-owned actions when CI is green",
+      "matchManagers": ["github-actions"],
+      "matchPackagePrefixes": ["actions/", "github/"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "automergeStrategy": "squash",
+      "platformAutomerge": true
+    },
+
+    // ── Automerge minor/patch for well-known npm tooling ─────────────────
+    {
+      "description": "Automerge minor/patch updates for common dev-dependencies",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    },
+
+    // ── Never automerge major updates ────────────────────────────────────
+    {
+      "description": "Require manual review for all major updates",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["dependencies", "major-update"]
+    },
+
+    // ── Group all minor/patch Python dependency updates ───────────────────
+    {
+      "description": "Group Python non-major dependency updates",
+      "matchManagers": ["pip_requirements", "pip-compile", "pipenv", "poetry"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Python dependencies (non-major)"
+    },
+
+    // ── Group all minor/patch npm dependency updates ──────────────────────
+    {
+      "description": "Group npm non-major dependency updates",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchDepTypes": ["dependencies"],
+      "groupName": "npm dependencies (non-major)"
+    }
+  ],
+
+  // ── Vulnerability alerts ─────────────────────────────────────────────────
+  // Always create an immediate PR for security vulnerabilities, regardless
+  // of the global schedule.
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "schedule": ["at any time"],
+    "automerge": false,
+    "labels": ["security"]
+  },
+
+  // ── Dependency Dashboard ─────────────────────────────────────────────────
+  // Keeps a single GitHub issue as a central overview of all pending updates.
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "🤖 Renovate Dependency Dashboard"
+}
