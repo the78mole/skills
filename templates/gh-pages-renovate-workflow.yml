@@ -1,0 +1,98 @@
+# GitHub Pages Deployment Workflow
+#
+# Optimised for Renovate scanning:
+# - Action references use semantic version tags as initial values; Renovate will
+#   automatically convert them to pinned SHA digests on its first run.
+# - Node.js version is declared as a top-level env var for easy Renovate updates.
+# - Workflow permissions follow the principle of least privilege.
+#
+# Usage:
+#   1. Copy this file to .github/workflows/deploy-pages.yml in your repository.
+#   2. Enable GitHub Pages in Settings → Pages → Source: GitHub Actions.
+#   3. Adjust the `build` step commands to match your project's build tooling.
+#   4. Install Renovate; on its first run it will pin all action tags to SHA digests.
+#
+# Renovate will automatically:
+#   - Pin action version tags to their full SHA digest (supply-chain hardening).
+#   - Keep those digests and the NODE_VERSION env var up to date.
+
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  # Allow manual triggering from the Actions tab
+  workflow_dispatch:
+
+# Least-privilege permissions; pages/id-token are only granted to the deploy job.
+permissions:
+  contents: read
+
+# Cancel in-flight deployments when a new push arrives on the same branch.
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Renovate will update this value when a new Node.js LTS is released.
+  NODE_VERSION: '22'
+
+jobs:
+  # ── Build ──────────────────────────────────────────────────────────────────
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Full history for tools that need it (e.g., VitePress lastUpdated)
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Replace this step with your own build command ──────────────────────
+      # Examples:
+      #   Static site generators : npm run build
+      #   MkDocs (Python)        : pip install mkdocs-material && mkdocs build
+      #   Hugo                   : hugo --minify
+      - name: Build site
+        run: npm run build
+        env:
+          # Set to the repository sub-path if the site is not served from root,
+          # e.g. BASE_URL: /my-repo/
+          BASE_URL: /
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Adjust to your build output directory (e.g., dist, _site, public)
+          path: dist
+
+  # ── Deploy ─────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+
+    # These permissions are required by the deploy-pages action.
+    permissions:
+      pages: write
+      id-token: write
+
+    # Deploy to the github-pages environment.
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
