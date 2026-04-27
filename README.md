@@ -1,8 +1,12 @@
-# Skills – Copilot & Renovate Skill Collection
+# Skills – Persönliche Copilot Skill-Sammlung
 
-A curated collection of templates and instructions for keeping GitHub repositories
-up-to-date with **Renovate** as the primary dependency-management tool and
-**GitHub Copilot** tuned to modern CI/CD standards.
+Dieses Repository ist die **zentrale Ablage für meine eigenen GitHub Copilot Skills**.
+Es dient als Single Source of Truth: Skills werden hier gepflegt und von hier aus in
+die lokale User-Skill-Konfiguration (`~/.copilot/skills/`) eingespielt, damit sie in
+allen Projekten auf dem Rechner verfügbar sind.
+
+Zusätzlich enthält das Repo Renovate- und CI/CD-Templates, die als Vorlage für neue
+Projekte dienen, sowie die globale `copilot-instructions.md`.
 
 ---
 
@@ -11,97 +15,134 @@ up-to-date with **Renovate** as the primary dependency-management tool and
 ```
 .
 ├── .github/
-│   └── copilot-instructions.md   ← Copilot governance rules
+│   ├── copilot-instructions.md   ← Globale Copilot-Regeln (CI/CD, Renovate)
+│   └── skills -> ../skills       ← Symlink → skills/ (für Repo-lokale Nutzung)
+├── skills/                       ← Primärer Ablageort aller Skills
+│   ├── cjk-filename-renaming/   ← Umbenennen von CJK/GBK-Dateinamen
+│   ├── devcontainer-setup/      ← Dev Container Konfiguration & Features
+│   ├── embedded-git-hygiene/    ← Git-Hygiene für Embedded-Projekte (Yocto/KiCad)
+│   ├── ghcr-oci-artifacts/      ← Große Binaries als OCI-Artefakte in GHCR
+│   ├── nuxt-gh-pages/           ← Nuxt 4 + GitHub Pages Deployment
+│   ├── python-uv/               ← Python mit uv & pyproject.toml
+│   ├── gh-pages-maintenance/    ← Betrieb & Wartung von GitHub Pages Sites
+│   └── yocto-build-and-flash/   ← Yocto Build & Flash für MYD-YF13X
 └── templates/
-    ├── renovate.json              ← Best-practice Renovate config
-    └── gh-pages-renovate-workflow.yml  ← Optimised GitHub Pages workflow
+    ├── renovate.json              ← Renovate-Basiskonfiguration
+    └── gh-pages-renovate-workflow.yml  ← Optimierter GitHub Pages Workflow
 ```
 
 ---
 
-## Quick Start
+## Skills in die lokale User-Konfiguration einbinden
 
-### 1 – Add the Renovate configuration
+Copilot lädt User-Skills aus `~/.copilot/skills/`. Der einfachste Weg, dieses Repo
+als Quelle zu nutzen, ist ein **Symlink** vom User-Skills-Ordner auf das ausgecheckte
+Repo:
 
-Copy `templates/renovate.json` to the **root** of your target repository:
+```bash
+# Einmalig einrichten (Repo muss bereits geklont sein)
+SKILLS_REPO=~/GIT/the78mole/skills
+
+mkdir -p ~/.copilot
+ln -sfn "$SKILLS_REPO/skills" ~/.copilot/skills
+```
+
+Danach zeigt `~/.copilot/skills/` direkt auf den `skills/`-Ordner dieses Repos.
+Ein `git pull` im Repo genügt, um alle Skills auf dem neuesten Stand zu halten –
+kein manuelles Kopieren erforderlich.
+
+> **Alternativ – einzelne Skills gezielt kopieren:**
+> ```bash
+> cp -r ~/GIT/the78mole/skills/skills/nuxt-gh-pages ~/.copilot/skills/
+> ```
+
+### Neuen Skill hinzufügen
+
+1. Ordner unter `skills/<skill-name>/` anlegen.
+2. `SKILL.md` mit YAML-Frontmatter (`name`, `description`) erstellen.
+3. Änderung committen und pushen → steht sofort lokal zur Verfügung.
+
+Minimales Frontmatter-Template:
+
+```markdown
+---
+name: mein-skill
+description: >
+  Kurze Beschreibung wann dieser Skill relevant ist.
+  Copilot nutzt diese Beschreibung zur automatischen Auswahl.
+---
+
+# Skill-Titel
+
+## Abschnitt
+...
+```
+
+---
+
+## Templates verwenden
+
+### Renovate-Konfiguration
 
 ```bash
 cp templates/renovate.json /path/to/your-repo/renovate.json
 ```
 
-Then install the [Renovate GitHub App](https://github.com/apps/renovate) on that
-repository (or enable it via your organisation's Renovate bot).
+Dann die [Renovate GitHub App](https://github.com/apps/renovate) installieren.
 
-> **Tip:** Rename the file to `renovate.json5` if you want to keep the inline
-> comments – Renovate supports both formats.
+> **Tipp:** Umbenennen in `renovate.json5` erlaubt Inline-Kommentare.
 
-### 2 – Copy the Copilot instructions into your IDE
-
-The `.github/copilot-instructions.md` file is picked up automatically by
-GitHub Copilot in VS Code and other supported editors when the file is present
-in the repository root's `.github/` folder.
-
-To apply the same rules **globally** across all your repositories:
-
-1. Open VS Code Settings (`Ctrl+,` / `Cmd+,`).
-2. Search for **"GitHub Copilot: Instructions"**.
-3. Add the path to your local copy of `copilot-instructions.md`.
-
-Or use the GitHub Copilot CLI:
-
-```bash
-gh copilot config set instructions "$(cat .github/copilot-instructions.md)"
-```
-
-### 3 – Set up GitHub Pages deployment (optional)
-
-Copy the workflow template to your repository:
+### GitHub Pages Workflow
 
 ```bash
 cp templates/gh-pages-renovate-workflow.yml \
    /path/to/your-repo/.github/workflows/deploy-pages.yml
 ```
 
-Adjust the `Build site` step to match your project's build tooling, then enable
-GitHub Pages in **Settings → Pages → Source: GitHub Actions**.
+Den `Build site`-Schritt ans eigene Build-Tool anpassen, dann GitHub Pages unter
+**Settings → Pages → Source: GitHub Actions** aktivieren.
+
+### Globale Copilot-Anweisungen
+
+Die `.github/copilot-instructions.md` wird von Copilot automatisch eingelesen, wenn
+sie im `.github/`-Ordner eines geklonten Repos liegt. Für eine **globale** Wirkung
+in VS Code:
+
+1. `Strg+,` → nach **"GitHub Copilot: Instructions"** suchen.
+2. Pfad zur lokalen `copilot-instructions.md` eintragen.
 
 ---
 
-## Using the Renovate Dependency Dashboard
+## Enthaltene Skills im Überblick
 
-Once Renovate is installed and has run at least once, it creates a
-**Dependency Dashboard** issue in your repository.  This single issue acts as a
-control panel for all pending updates:
-
-| Section | What it shows |
+| Skill | Beschreibung |
 |---|---|
-| 🔴 **Rate-limited / Blocked** | PRs that are on hold due to `prConcurrentLimit` |
-| 🟡 **Awaiting Schedule** | Updates queued for the weekend schedule |
-| 🟢 **Open PRs** | Currently open Renovate pull requests |
-| ⚪ **Detected dependencies** | Full inventory of every dependency Renovate tracks |
-
-**Useful actions:**
-
-- **Tick a checkbox** next to a pending update to trigger it immediately,
-  bypassing the schedule.
-- **Comment `rebase`** on any Renovate PR to force a rebase against the base branch.
-- **Close and reopen** the Dashboard issue to force Renovate to re-evaluate all rules.
+| `cjk-filename-renaming` | Dateien mit chinesischen (GBK/UTF-8) Zeichen in Dateinamen umbenennen |
+| `devcontainer-setup` | Dev Container auf Ubuntu 26.04 mit projektspezifischen Features konfigurieren |
+| `embedded-git-hygiene` | `.gitignore`, Verzeichnisstruktur und Vendor-Handling für Yocto/KiCad |
+| `ghcr-oci-artifacts` | Große Binaries (>2 GB) per `oras` in GHCR hochladen und verwalten |
+| `nuxt-gh-pages` | Nuxt 4 SSG-Blogs auf GitHub Pages betreiben inkl. Content v3 Migration |
+| `python-uv` | Python-Projekte mit `uv` und `pyproject.toml`; aktuelle PyPI-Versionen abfragen |
+| `gh-pages-maintenance` | CI/CD, Redirects, AdSense, Content-Schema für GH Pages Sites (Nuxt) |
+| `yocto-build-and-flash` | Yocto-Build für MYiR MYD-YF13X (STM32MP135), Flash via STM32CubeProgrammer |
 
 ---
 
-## Design Principles
+## Renovate Dependency Dashboard
 
-| Principle | Implementation |
+Sobald Renovate mindestens einmal gelaufen ist, erstellt es ein
+**Dependency Dashboard**-Issue als Kontrollpanel für alle ausstehenden Updates:
+
+| Bereich | Inhalt |
 |---|---|
-| **No noise** | Weekend-only schedule; non-major updates grouped into a single PR |
-| **Safety first** | Major updates require manual review; vulnerability alerts bypass the schedule |
-| **Automation** | Minor/patch updates for trusted sources automerge when CI is green |
-| **Auditability** | SHA-pinned actions; Dependency Dashboard issue for full visibility |
-| **Modern stack** | Node.js 22, Python 3.12, Actions v4+ enforced via Copilot instructions |
+| **Rate-limited / Blocked** | PRs, die durch `prConcurrentLimit` zurückgehalten werden |
+| **Awaiting Schedule** | Updates, die auf das Wochenend-Fenster warten |
+| **Open PRs** | Aktuell offene Renovate Pull Requests |
+| **Detected dependencies** | Vollständiger Überblick aller getrackten Abhängigkeiten |
 
 ---
 
 ## Contributing
 
-Pull requests and issues are welcome.  Please follow the conventions described
-in `.github/copilot-instructions.md` when contributing.
+Pull Requests und Issues sind willkommen. Bitte die Konventionen aus
+`.github/copilot-instructions.md` beachten.

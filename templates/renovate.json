@@ -67,9 +67,10 @@
     },
 
     // ── Group all minor/patch Python dependency updates ───────────────────
+    // Covers uv (pyproject.toml / uv.lock), pip, pip-compile, pipenv, poetry.
     {
       "description": "Group Python non-major dependency updates",
-      "matchManagers": ["pip_requirements", "pip-compile", "pipenv", "poetry"],
+      "matchManagers": ["uv", "pip_requirements", "pip-compile", "pipenv", "poetry"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "Python dependencies (non-major)"
     },
