@@ -285,6 +285,94 @@ onMounted(() => { isMounted.value = true })
 
 ---
 
+## Kommentare mit giscus (GitHub Discussions)
+
+giscus bettet GitHub Discussions als Kommentarfunktion ein. Besucher brauchen einen GitHub-Account. Keine Datenbank, kein Tracking, Open Source.
+
+### Voraussetzungen
+
+1. Repo muss **public** sein und **Discussions aktiviert** haben (Settings → Features)
+2. [giscus App](https://github.com/apps/giscus) auf dem Repo installiert
+3. Discussions-Kategorie erstellt (empfohlen: Typ **Announcements**, damit nur giscus/Maintainer neue Threads öffnen können)
+4. IDs ermitteln:
+   ```bash
+   gh api graphql -f query='{ repository(owner:"OWNER", name:"REPO") { id discussionCategories(first:20) { nodes { id name } } } }'
+   ```
+
+### Installation
+
+```bash
+npm install @giscus/vue
+```
+
+### runtimeConfig (`nuxt.config.ts`)
+
+```ts
+const giscusRepoId     = process.env.GISCUS_REPO_ID     || 'R_...'
+const giscusCategoryId = process.env.GISCUS_CATEGORY_ID || 'DIC_...'
+
+runtimeConfig: {
+  public: {
+    giscus: {
+      repo:       'owner/repo',
+      repoId:     giscusRepoId,
+      category:   'Blog Comments',
+      categoryId: giscusCategoryId,
+    },
+  },
+}
+```
+
+### components/GiscusComments.vue
+
+```vue
+<script setup lang="ts">
+import Giscus from '@giscus/vue'   // NUR default export – kein { GiscusComponent }!
+const { public: { giscus } } = useRuntimeConfig()
+</script>
+
+<template>
+  <ClientOnly>
+    <div class="mt-16 pt-8 border-t border-gray-800">
+      <Giscus
+        :repo="giscus.repo"
+        :repo-id="giscus.repoId"
+        :category="giscus.category"
+        :category-id="giscus.categoryId"
+        mapping="pathname"
+        strict="0"
+        reactions-enabled="1"
+        emit-metadata="0"
+        input-position="top"
+        theme="transparent_dark"
+        lang="de"
+        loading="lazy"
+      />
+    </div>
+  </ClientOnly>
+</template>
+```
+
+**Pflicht**: `<ClientOnly>` – giscus rendert ein `<iframe>` clientseitig, kein SSR.
+
+**Export-Falle**: `@giscus/vue` hat nur `default` export. `import { GiscusComponent } from '@giscus/vue'` → Build-Fehler `"GiscusComponent" is not exported`.
+
+### CI-Vars setzen
+
+```bash
+gh variable set GISCUS_REPO_ID     --body "R_..." --repo owner/repo
+gh variable set GISCUS_CATEGORY_ID --body "DIC_..." --repo owner/repo
+```
+
+Im `generate`-Step des Workflows ergänzen:
+```yaml
+env:
+  GISCUS_REPO_ID:     ${{ vars.GISCUS_REPO_ID }}
+  GISCUS_CATEGORY_ID: ${{ vars.GISCUS_CATEGORY_ID }}
+```
+
+---
+
 ## CI-Fehler debuggen
 
 ```bash
@@ -326,6 +414,9 @@ gh run view <run-id> --log | grep -E "(error|Error|ERROR)" | head -30
 - [ ] Favicon: `{ rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }` (kein .ico)
 - [ ] `nuxt-gtag` mit `initMode: 'manual'` (DSGVO)
 - [ ] `ConsentBanner.vue` in `<ClientOnly>` in `app.vue`
+- [ ] giscus: Discussions aktiviert, App installiert, Kategorie (Announcements-Typ) angelegt
+- [ ] `GiscusComments.vue` mit `<ClientOnly>` + `import Giscus from '@giscus/vue'` (default, kein named export)
+- [ ] `GISCUS_REPO_ID` + `GISCUS_CATEGORY_ID` als GitHub Vars + im Workflow-`env:`
 - [ ] Datenschutz: GA4-Abschnitt + Widerruf-Button
 - [ ] Cookie-abhängige Komponenten in `<ClientOnly>`
 - [ ] Dynamische Datums-/Zeit-Werte mit `onMounted`-Pattern
